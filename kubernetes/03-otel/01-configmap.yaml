@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: elastic
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      memory_limiter:
+        limit_mib: 256
+        spike_limit_mib: 64
+        check_interval: 5s
+      batch:
+        timeout: 1s
+
+    exporters:
+      elasticsearch:
+        endpoints: ["http://elasticsearch:9200"]
+        user: elastic
+        password: ${ELASTIC_PASSWORD}
+        logs_index: otel-logs
+        traces_index: otel-traces
+        metrics_index: otel-metrics
+      debug:
+        verbosity: basic
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [elasticsearch]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [elasticsearch]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [elasticsearch]
