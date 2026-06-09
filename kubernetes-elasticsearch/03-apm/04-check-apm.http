@@ -1,0 +1,11 @@
+### Stuur een test event naar de APM server
+# Vereist eerst een port-forward:
+# kubectl port-forward svc/apm-server 8200:8200 -n elastic
+
+POST http://localhost:8200/intake/v2/events
+Content-Type: application/x-ndjson
+
+{"metadata":{"service":{"name":"test-service","version":"1.0","agent":{"name":"curl","version":"0.0"}}}}
+{"transaction":{"id":"abc123","trace_id":"abc123abc123abc123abc123abc123ab","type":"request","duration":42,"result":"200","sampled":true,"span_count":{"started":0,"dropped":0}}}
+
+###

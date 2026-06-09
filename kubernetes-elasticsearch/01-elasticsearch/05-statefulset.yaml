@@ -4,8 +4,9 @@ metadata:
   name: elasticsearch
   namespace: elastic
 spec:
-  serviceName: elasticsearch
-  replicas: 1
+  serviceName: elasticsearch-headless
+  replicas: 3
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app: elasticsearch
@@ -14,40 +15,48 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      initContainers:
+        - name: fix-vm-max-map-count
+          image: busybox
+          command: ["sysctl", "-w", "vm.max_map_count=262144"]
+          securityContext:
+            privileged: true
       containers:
         - name: elasticsearch
-          image: docker.elastic.co/elasticsearch/elasticsearch:9.0.1
+          image: docker.elastic.co/elasticsearch/elasticsearch:9.4.2
           ports:
             - name: http
               containerPort: 9200
             - name: transport
               containerPort: 9300
           env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: ELASTIC_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: elasticsearch-credentials
                   key: elastic-password
-            - name: KIBANA_SYSTEM_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: elasticsearch-credentials
-                  key: kibana-system-password
             - name: ES_JAVA_OPTS
-              value: "-Xms1g -Xmx1g"
+              value: "-Xms512m -Xmx512m"
           resources:
             requests:
+              memory: "1Gi"
+              cpu: "250m"
+            limits:
               memory: "1.5Gi"
               cpu: "500m"
-            limits:
-              memory: "2Gi"
-              cpu: "1000m"
           volumeMounts:
             - name: config
               mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
               subPath: elasticsearch.yml
             - name: data
               mountPath: /usr/share/elasticsearch/data
+            - name: certs
+              mountPath: /usr/share/elasticsearch/config/certs
+              readOnly: true
           readinessProbe:
             exec:
               command:
@@ -56,32 +65,16 @@ spec:
                 - |
                   curl -s -u "elastic:${ELASTIC_PASSWORD}" http://localhost:9200/_cluster/health \
                     | grep -qE '"status":"(green|yellow)"'
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
-            failureThreshold: 6
-          # Stelt het kibana_system wachtwoord in zodra Elasticsearch klaar is
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                  - /bin/bash
-                  - -c
-                  - |
-                    for i in $(seq 1 30); do
-                      STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                        -u "elastic:${ELASTIC_PASSWORD}" http://localhost:9200/_cluster/health)
-                      [ "$STATUS" = "200" ] && break
-                      sleep 10
-                    done
-                    curl -s -X POST \
-                      -u "elastic:${ELASTIC_PASSWORD}" \
-                      -H 'Content-Type: application/json' \
-                      -d "{\"password\":\"${KIBANA_SYSTEM_PASSWORD}\"}" \
-                      http://localhost:9200/_security/user/kibana_system/_password || true
+            failureThreshold: 10
       volumes:
         - name: config
           configMap:
             name: elasticsearch-config
+        - name: certs
+          secret:
+            secretName: elasticsearch-certificates
   volumeClaimTemplates:
     - metadata:
         name: data

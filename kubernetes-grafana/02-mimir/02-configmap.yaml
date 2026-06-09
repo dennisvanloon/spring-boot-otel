@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-config
+  namespace: monitoring
+
+data:
+  mimir.yaml: |
+    multitenancy_enabled: false
+
+    server:
+      http_listen_port: 9009
+
+    blocks_storage:
+      backend: filesystem
+      filesystem:
+        dir: /data/blocks
+
+    ingester:
+      ring:
+        kvstore:
+          store: inmemory
+        replication_factor: 1
+
+    distributor:
+      ring:
+        kvstore:
+          store: inmemory
+
+    compactor:
+      data_dir: /data/compactor
+      sharding_ring:
+        kvstore:
+          store: inmemory
+
+    limits:
+      ingestion_rate: 10000
+      max_global_series_per_user: 100000
+    
+    memberlist:
+      join_members: []

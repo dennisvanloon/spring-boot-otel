@@ -15,34 +15,33 @@ spec:
     spec:
       containers:
         - name: kibana
-          image: docker.elastic.co/kibana/kibana:9.0.1
+          image: docker.elastic.co/kibana/kibana:9.4.2
           ports:
-            - name: http
-              containerPort: 5601
+            - containerPort: 5601
           env:
-            - name: ELASTICSEARCH_PASSWORD
+            - name: KIBANA_SYSTEM_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: elasticsearch-credentials
                   key: kibana-system-password
-          resources:
-            requests:
-              memory: "512Mi"
-              cpu: "250m"
-            limits:
-              memory: "1Gi"
-              cpu: "500m"
           volumeMounts:
             - name: config
               mountPath: /usr/share/kibana/config/kibana.yml
               subPath: kibana.yml
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
           readinessProbe:
             httpGet:
               path: /api/status
               port: 5601
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
-            failureThreshold: 6
+            failureThreshold: 10
       volumes:
         - name: config
           configMap:

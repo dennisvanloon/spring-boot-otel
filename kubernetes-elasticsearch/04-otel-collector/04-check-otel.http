@@ -1,0 +1,45 @@
+### Stuur een test trace naar de OTEL Collector
+# Vereist eerst een port-forward:
+# kubectl port-forward svc/otel-collector 4318:4318 -n elastic
+
+< {%
+  client.global.set("NOW_NS", String(Date.now()) + "000000");
+  client.global.set("END_NS", String(Date.now() + 100) + "000000");
+%}
+
+POST http://localhost:4318/v1/traces
+Content-Type: application/json
+
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "otel-test"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "spans": [
+            {
+              "traceId": "abcdef1234567890abcdef1234567890",
+              "spanId": "abcdef1234567890",
+              "name": "test-span",
+              "kind": 1,
+              "startTimeUnixNano": "{{NOW_NS}}",
+              "endTimeUnixNano": "{{END_NS}}",
+              "status": {}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+###

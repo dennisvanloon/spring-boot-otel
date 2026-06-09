@@ -5,6 +5,10 @@ metadata:
   namespace: elastic
 data:
   config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
     receivers:
       otlp:
         protocols:
@@ -22,27 +26,25 @@ data:
         timeout: 1s
 
     exporters:
-      elasticsearch:
-        endpoints: ["http://elasticsearch:9200"]
-        user: elastic
-        password: ${ELASTIC_PASSWORD}
-        logs_index: otel-logs
-        traces_index: otel-traces
-        metrics_index: otel-metrics
+      otlp/apm:
+        endpoint: "http://apm-server:8200"
+        tls:
+          insecure: true
       debug:
         verbosity: basic
 
     service:
+      extensions: [health_check]
       pipelines:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [elasticsearch]
+          exporters: [otlp/apm, debug]
         metrics:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [elasticsearch]
+          exporters: [otlp/apm, debug]
         logs:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [elasticsearch]
+          exporters: [otlp/apm, debug]
