@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mimir
-  namespace: monitoring
+  namespace: metrics
 spec:
   serviceName: mimir
   replicas: 1

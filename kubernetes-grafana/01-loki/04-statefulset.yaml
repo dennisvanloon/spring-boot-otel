@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: loki
-  namespace: loki
+  namespace: logging
 spec:
   serviceName: loki
   replicas: 1

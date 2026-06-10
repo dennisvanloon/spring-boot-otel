@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mimir-config
-  namespace: monitoring
+  namespace: metrics
 
 data:
   mimir.yaml: |
